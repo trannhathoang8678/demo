@@ -1,9 +1,12 @@
 package plusplus.demo.controller;
 
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.web.bind.annotation.*;
 import plusplus.demo.entity.DemoConnection;
 import plusplus.demo.entity.User;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -14,28 +17,29 @@ import java.util.List;
 @RequestMapping(value = "/prefix")
 public class RestfulController {
     @PostMapping(value = "/user")
-    public List<User> insertUser(@RequestBody UserInserted userInserted) {
-        List<User> users = new ArrayList<>();
-        User user;
-        String sql = "INSERT INTO user (username,password,fullname,email,phone) VALUE ('" + userInserted.getUsername() + "',"
-                + userInserted.getFullname() + ",'" + userInserted.getPassword() + "'," + userInserted.getFullname() + "',"
-                + userInserted.getEmail() + "'," + userInserted.getAddress() + "'," + userInserted.getPhone() + "';";
-        System.out.println(sql);
+    public void insertUser(@RequestBody UserInserted userInserted) {
+        String sql = "INSERT INTO USER (username,password,fullname,email,address,phone) VALUE ('" + userInserted.getUsername() + "','"
+                + userInserted.getPassword() + "','" + userInserted.getFullname() + "','"
+                + userInserted.getEmail() + "','" + userInserted.getAddress() + "','" + userInserted.getPhone() + "');";
         try {
             Statement statement = DemoConnection.getInstance().getConnection().createStatement();
             statement.executeUpdate(sql);
+            System.out.println("Insert succefullly");
         } catch (SQLException e) {
             e.printStackTrace();
-            System.out.println(sql);
-            return users;
         }
+    }
 
-
-        sql = "SELECT * FROM USER ORDER BY fullname ASC;";
+    @GetMapping(value = "/user/list")
+    public List<User> getUserList() {
+        String sql = "SELECT * FROM USER ORDER BY fullname ASC;";
+        List<User> users = new ArrayList<>();
+        User user;
         try {
             Statement statement = DemoConnection.getInstance().getConnection().createStatement();
             ResultSet getUsers = statement.executeQuery(sql);
             while (getUsers.next()) {
+
                 user = new User(getUsers.getInt(1), getUsers.getString(2), getUsers.getString(3), getUsers.getString(4)
                         , getUsers.getString(5), getUsers.getString(6), getUsers.getString(7));
                 users.add(user);
@@ -46,68 +50,73 @@ public class RestfulController {
             return users;
         }
     }
-
-    class UserInserted {
-        private String username, password, fullname, email, address, phone;
-
-        public String getUsername() {
-            return username;
+    @PutMapping(value = "/user/{user_id}")
+    public void updateUser(@PathVariable(name="user_id") int userID,@RequestBody UserInserted userInserted)
+    {
+        String findUser = "SELECT id FROM USER WHERE id = '" + userID + "';";
+        try
+        {
+            Statement statement = DemoConnection.getInstance().getConnection().createStatement();
+            ResultSet verifyUser = statement.executeQuery(findUser);
+            if(verifyUser.next())
+            {
+                String update= "UPDATE USER SET id = " + userID;
+                if(userInserted.getUsername()!=null)
+                {
+                    update+=",username = '" +userInserted.getUsername() + "'";
+                }
+                if(userInserted.getPassword()!=null)
+                {
+                    update+=",password = '" +userInserted.getPassword() + "'";
+                }
+                if(userInserted.getFullname()!=null)
+                {
+                    update+=",fullname = '" +userInserted.getFullname() + "'";
+                }
+                if(userInserted.getEmail()!=null)
+                {
+                    update+=",email = '" +userInserted.getEmail() + "'";
+                }
+                if(userInserted.getAddress()!=null)
+                {
+                    update+=",address = '" +userInserted.getAddress() + "'";
+                }
+                update+=" WHERE id = " + userID + ";";
+                statement = DemoConnection.getInstance().getConnection().createStatement();
+                statement.executeUpdate(update);
+                System.out.println("UPDATE SUCCESSFULLY");
+            }
+            else
+            {
+                System.out.println("THIS ID IS NOT EXIST");
+            }
         }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
-
-        public String getFullname() {
-            return fullname;
-        }
-
-        public void setFullname(String fullname) {
-            this.fullname = fullname;
-        }
-
-        public String getEmail() {
-            return email;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-        }
-
-        public String getAddress() {
-            return address;
-        }
-
-        public void setAddress(String address) {
-            this.address = address;
-        }
-
-        public String getPhone() {
-            return phone;
-        }
-
-        public void setPhone(String phone) {
-            this.phone = phone;
-        }
-
-        @Override
-        public String toString() {
-            return "UserInserted{" +
-                    "username='" + username + '\'' +
-                    ", password='" + password + '\'' +
-                    ", fullname='" + fullname + '\'' +
-                    ", email='" + email + '\'' +
-                    ", address='" + address + '\'' +
-                    ", phone='" + phone + '\'' +
-                    '}';
+        catch (SQLException e)
+        {
+            e.printStackTrace();
+            System.out.println("Update fail");
         }
     }
+    @DeleteMapping(value = "/user")
+    public void deleteUser(@RequestParam(name = "user_id") int userID)
+    {
+        String delete = "DELETE FROM USER WHERE id = " + userID + ";";
+   //     System.out.println(delete);
+        try{
+            Statement statement = DemoConnection.getInstance().getConnection().createStatement();
+            statement.execute(delete);
+            System.out.println("Delete successfully");
+        }
+        catch (SQLException e)
+        {
+            e.printStackTrace();
+            System.out.println("Delete fail");
+        }
+    }
+}
+
+@Getter
+@Setter
+class UserInserted {
+    private String username, password, fullname, email, address, phone;
 }
